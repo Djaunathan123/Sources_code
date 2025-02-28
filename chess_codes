@@ -1,0 +1,87 @@
+import pygame
+import chess
+
+pygame.init()
+
+WIDTH, HEIGHT = 600, 600
+SQUARE_SIZE = WIDTH // 8
+WHITE = (238, 238, 210)
+BLACK = (118, 150, 86)
+
+board = chess.Board()
+
+screen = pygame.display.set_mode((WIDTH, HEIGHT))
+pygame.display.set_caption("Chess Game")
+
+piece_name_map = {
+    'r': 'Black_Rook',
+    'n': 'Black_Knight',
+    'b': 'Black_Bishop',
+    'q': 'Black_Queen',
+    'k': 'Black_King',
+    'p': 'Black_Pawn',
+    'R': 'White_Rook',
+    'N': 'White_Knight',
+    'B': 'White_Bishop',
+    'Q': 'White_Queen',
+    'K': 'White_King',
+    'P': 'White_Pawn'
+}
+
+pieces = {}
+for piece in ['Black_Rook', 'Black_Knight', 'Black_Bishop', 'Black_Queen', 'Black_King', 'Black_Pawn',
+              'White_Rook', 'White_Knight', 'White_Bishop', 'White_Queen', 'White_King', 'White_Pawn']:
+    pieces[piece] = pygame.image.load(f'images/{piece}.png')
+    pieces[piece] = pygame.transform.scale(pieces[piece], (SQUARE_SIZE, SQUARE_SIZE))
+
+# Track selected piece
+selected_piece = None
+
+def draw_board():
+    for row in range(8):
+        for col in range(8):
+            color = WHITE if (row + col) % 2 == 0 else BLACK
+            pygame.draw.rect(screen, color, (col * SQUARE_SIZE, row * SQUARE_SIZE, SQUARE_SIZE, SQUARE_SIZE))
+
+def draw_pieces():
+    for row in range(8):
+        for col in range(8):
+            piece = board.piece_at(chess.square(col, 7 - row))
+            if piece:
+                piece_symbol = piece.symbol()  
+                piece_name = piece_name_map.get(piece_symbol)  
+                if piece_name:
+                    screen.blit(pieces[piece_name], (col * SQUARE_SIZE, row * SQUARE_SIZE))
+
+def get_square_from_mouse(pos):
+    x, y = pos
+    col = x // SQUARE_SIZE
+    row = y // SQUARE_SIZE
+    return chess.square(col, 7 - row)
+
+running = True
+while running:
+    screen.fill((0, 0, 0))
+    draw_board()
+    draw_pieces()
+    pygame.display.flip()
+
+    for event in pygame.event.get():
+        if event.type == pygame.QUIT:
+            running = False
+        
+        if event.type == pygame.MOUSEBUTTONDOWN:
+            mouse_pos = pygame.mouse.get_pos()
+            square = get_square_from_mouse(mouse_pos)
+
+            if selected_piece is None:
+                piece = board.piece_at(square)
+                if piece and piece.color == board.turn:
+                    selected_piece = square
+            else:
+                move = chess.Move(selected_piece, square)
+                if move in board.legal_moves:
+                    board.push(move)
+                selected_piece = None
+
+pygame.quit()
