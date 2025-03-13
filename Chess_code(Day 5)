@@ -42,14 +42,26 @@ selected_piece = None
 
 # AI settings
 ai_mode = None  
-engine_path = r"C:\Users\CCSE Student\Downloads\stockfish-windows-x86-64-avx2\stockfish\stockfish-windows-x86-64-avx2.exe"
+engine_path = r"C:\Users\Djaunathan Albert\Desktop\stockfish-windows-x86-64-avx2\stockfish\stockfish-windows-x86-64-avx2.exe"
 engine = chess.engine.SimpleEngine.popen_uci(engine_path)
 
+difficulty_levels = {
+    "Easy": {"Level 1": 1, "Level 2": 2, "Level 3": 3},
+    "Medium": {"Level 1": 4, "Level 2": 6, "Level 3": 8},
+    "Hard": {"Level 1": 10, "Level 2": 12, "Level 3": 15}
+}
+
+engine = chess.engine.SimpleEngine.popen_uci(engine_path)
+engine.configure({"Skill Level": 1}) 
+
 def draw_welcome():
-    screen.fill((20, 20, 20))
+    background = pygame.image.load('images/welcome_background.jpg')  
+    background = pygame.transform.scale(background, (WIDTH, HEIGHT)) 
+    screen.blit(background, (0, 0))  
+
     font = pygame.font.SysFont('Arial', 60, bold=True)
     title = font.render('Welcome to Chess', True, (255, 255, 255))
-    screen.blit(title, (WIDTH // 2 - title.get_width() // 2, 150))
+    screen.blit(title, (WIDTH // 2 - title.get_width() // 2, 100))
 
     button_font = pygame.font.SysFont('Arial', 40, bold=True)
     play_button = pygame.Rect(WIDTH // 2 - 100, 350, 200, 70)
@@ -57,10 +69,10 @@ def draw_welcome():
     pygame.draw.rect(screen, (255, 255, 255), play_button, 3, border_radius=15)
     play_text = button_font.render('Play', True, (0, 0, 0))
     screen.blit(play_text, (WIDTH // 2 - play_text.get_width() // 2, 365))
+
     pygame.display.flip()
     return play_button
 
-# Function to display the difficulty menu
 def draw_menu(hovered_button=None):
     screen.fill((30, 30, 30))  
     font = pygame.font.SysFont('Arial', 50, bold=True)
@@ -69,7 +81,7 @@ def draw_menu(hovered_button=None):
 
     button_font = pygame.font.SysFont('Arial', 30, bold=True)
     buttons = {
-        "Back": pygame.Rect(WIDTH // 2 - 100, 520, 200, 60),
+        "Back": pygame.Rect(15, 15, 100, 40),  
         "Easy": pygame.Rect(WIDTH // 2 - 100, 200, 200, 60),
         "Medium": pygame.Rect(WIDTH // 2 - 100, 280, 200, 60),
         "Hard": pygame.Rect(WIDTH // 2 - 100, 360, 200, 60),
@@ -84,6 +96,7 @@ def draw_menu(hovered_button=None):
         "Player vs Player": (100, 149, 237)
     }
     hover_colors = {
+        "Back": (200, 200, 200),
         "Easy": (0, 255, 0),
         "Medium": (255, 220, 0),
         "Hard": (255, 50, 50),
@@ -95,7 +108,11 @@ def draw_menu(hovered_button=None):
         pygame.draw.rect(screen, color, rect, border_radius=15)  
         pygame.draw.rect(screen, (255, 255, 255), rect, 3, border_radius=15)  
         text_surface = button_font.render(text, True, (0, 0, 0))
-        screen.blit(text_surface, (WIDTH // 2 - text_surface.get_width() // 2, rect.y + 15))
+        if text == "Back":  
+            screen.blit(text_surface, (rect.x + (rect.width - text_surface.get_width()) // 2,  
+                                        rect.y + (rect.height - text_surface.get_height()) // 2))
+        else:
+            screen.blit(text_surface, (WIDTH // 2 - text_surface.get_width() // 2, rect.y + 15))
 
     pygame.display.flip()
     return buttons
@@ -129,16 +146,13 @@ def reset_game():
     ai_mode = None    
 
 def get_ai_move():
-    if ai_mode == "Easy":
-        engine.configure({"Skill Level": 0}) 
-        result = engine.play(board, chess.engine.Limit(depth=1))
-        engine.configure({"Skill Level": 20}) 
-        return result.move
-    else: 
-        engine.configure({"Skill Level": 20}) 
-        depth = {"Medium": 3, "Hard": 5}.get(ai_mode, 3)
-        result = engine.play(board, chess.engine.Limit(depth=depth))
-        return result.move
+    depth = {"Easy": 1, "Medium": 3, "Hard": 5}.get(ai_mode, 3)
+    skill = 0 if ai_mode == "Easy" else 20
+    
+    engine.configure({"Skill Level": skill})
+    result = engine.play(board, chess.engine.Limit(depth=depth))
+    
+    return result.move
 
 def draw_board():
     screen.blit(background, (0, 0))  
@@ -198,8 +212,12 @@ while running:
             elif event.type == pygame.MOUSEBUTTONDOWN:
                 for mode, rect in buttons.items():
                     if rect.collidepoint(mouse_pos):
-                        ai_mode = mode
-                        in_menu = False
+                        if mode == "Back":
+                            in_welcome = True 
+                            in_menu = False
+                        else:
+                            ai_mode = mode
+                            in_menu = False  
 
     else:
         draw_board()
@@ -216,11 +234,10 @@ while running:
             else:
                 show_result("Draw!")
             reset_game()
-            in_welcome = True  # After reset, return to welcome screen
+            in_welcome = True  
             continue
 
         if ai_mode == "Player vs Player":
-            # Player vs Player mode: alternates turns between two players
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     running = False
@@ -230,7 +247,7 @@ while running:
 
                     if selected_piece is None:
                         piece = board.piece_at(square)
-                        if piece and piece.color == board.turn:  # Only allow player to select their own piece
+                        if piece and piece.color == board.turn: 
                             selected_piece = square
                     else:
                         move = chess.Move(selected_piece, square)
@@ -305,4 +322,5 @@ while running:
                 
                 board.push(move)
                 selected_piece = None
+    pygame.display.flip()        
 pygame.quit()
